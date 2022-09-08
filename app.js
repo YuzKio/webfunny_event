@@ -51,7 +51,8 @@ app.use(async (ctx, next) => {
 })
 
 // routes
-app.use(httpRoute.routes(), httpRoute.allowedMethods())
+app.use(httpRoute[0].routes(), httpRoute[0].allowedMethods())
+app.use(httpRoute[1].routes(), httpRoute[1].allowedMethods())
 
 // error-handling
 app.on('error', (err, ctx) => {
