@@ -1,5 +1,6 @@
 const db = require("../config/db")
 const sequelize = db.sequelize
+const Dayjs = require("dayjs")
 
 const dataPointHandler = (data) => {
   const res = {}
@@ -23,23 +24,28 @@ const dataPointHandler = (data) => {
   return res
 }
 
-const findAllTable = async (pointId) => {
-  const sql = `show tables like '%_${pointId}_%'`
+const findAllTable = async (pointId, startTime, endTime) => {
+  let sql = `select table_name from information_schema.tables where table_schema='webfunny_db_event' and table_name like '%_${pointId}_%'`
+  if (startTime && endTime) {
+    const min = Dayjs(startTime).format("YYYYMMDD")
+    const max = Dayjs(endTime).format("YYYYMMDD")
+    if (startTime === endTime) {
+      sql += ` and table_name like '%_${min}'`
+    } else {
+      sql += ` and right(table_name,8) between '${min}' and '${max}'`
+    }
+  }
   const res = await sequelize.query(sql, { type: sequelize.QueryTypes.SELECT })
-  return res.map((item) => item[`Tables_in_webfunny_db_event (%_${pointId}_%)`])
+  return res.map((item) => item["TABLE_NAME"])
 }
 
 const createOwnRoutes = (router) => {
   router.post("/heatmapClickPoint", async (ctx, next) => {
     const { body } = ctx.request
-    const { pointId } = body
-    const res = await findAllTable(pointId)
+    const { pointId, startTime, endTime } = body
+    const res = await findAllTable(pointId, startTime, endTime)
 
     let rawRes = res.sort((a, b) => a.slice(-8) - b.slice(-8))
-    let [min, max] = [
-      rawRes[0].split(/_\d*_/)[1],
-      rawRes[rawRes.length - 1].split(/_\d*_/)[1],
-    ]
 
     const tables = rawRes.map((item) => `select * from ${item}`)
     const unions = tables.join("\n UNION ALL \n")
@@ -52,8 +58,6 @@ const createOwnRoutes = (router) => {
     const finalRes = dataPointHandler(tempRes)
     ctx.body = {
       data: finalRes,
-      max,
-      min,
       sql,
       total: tempRes.length,
     }
