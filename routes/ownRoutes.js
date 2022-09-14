@@ -42,7 +42,7 @@ const findAllTable = async (pointId, startTime, endTime) => {
 const createOwnRoutes = (router) => {
   router.post("/heatmapClickPoint", async (ctx, next) => {
     const { body } = ctx.request
-    const { pointId, startTime, endTime } = body
+    const { pointId, startTime, endTime, route } = body
     const res = await findAllTable(pointId, startTime, endTime)
 
     let rawRes = res.sort((a, b) => a.slice(-8) - b.slice(-8))
@@ -50,7 +50,7 @@ const createOwnRoutes = (router) => {
     const tables = rawRes.map((item) => `select * from ${item}`)
     const unions = tables.join("\n UNION ALL \n")
 
-    const sql = `select dom, clickx, clicky from (${unions}) as value`
+    const sql = `select dom, clickx, clicky from (${unions}) as value where route = '${route}'`
     const tempRes = await sequelize.query(sql, {
       type: sequelize.QueryTypes.SELECT,
     })
