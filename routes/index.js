@@ -1,6 +1,7 @@
 const Router = require('koa-router')
 const { Common } = require("../controllers/controllers.js")
 const { createRoutes } = require("./routes");
+const { createOwnRoutes } = require("./ownRoutes");
 const { customerWarningCallback } = require("../interceptor/customerWarning")
 const timerTask = require("./timer");
 
@@ -42,8 +43,13 @@ const router = new Router({
     prefix: '/tracker'
 })
 
+const ownRouter = new Router({
+    prefix: '/own'
+})
+
 const handleResult = () => {
     createRoutes(router)
+    createOwnRoutes(ownRouter)
     // 启动定时任务, 如果是slave模式，则不启动定时器
     timerTask(global.serverType)
     
@@ -62,4 +68,4 @@ ConfigTable.sync({force: false}).then(() => {
 })
 
 
-module.exports = router
+module.exports = [router, ownRouter]
